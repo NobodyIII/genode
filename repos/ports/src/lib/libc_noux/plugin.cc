@@ -1339,6 +1339,7 @@ namespace {
 
 		case TIOCGETA:
 			{
+				sysio()->ioctl_in.request = Vfs::File_io_service::IOCTL_OP_TIOCGETA;
 				if (verbose)
 					log(__func__, ": TIOCGETA - argp=", (void *)argp);
 				::termios *termios = (::termios *)argp;
@@ -1355,7 +1356,7 @@ namespace {
 				termios->c_ispeed = 0;
 				termios->c_ospeed = 0;
 
-				return 0;
+				break;
 			}
 
 			break;
@@ -1434,6 +1435,8 @@ namespace {
 		 */
 		switch (request) {
 
+		case TIOCGETA:
+			return 0;
 		case TIOCGWINSZ:
 			{
 				::winsize *winsize = (::winsize *)argp;
