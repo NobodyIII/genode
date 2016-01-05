@@ -193,6 +193,9 @@ struct Noux::Terminal_io_channel : Io_channel
 				return false;
 			}
 
+		case Vfs::File_io_service::IOCTL_OP_TIOCGETA:
+			return true;
+
 		default:
 
 			warning("invalid ioctl request ", (int)sysio.ioctl_in.request);
