@@ -31,7 +31,7 @@ namespace File_system {
 
 		Genode::Signal_handler<FS_reference> _process_packet_dispatcher;
 
-		FS_reference(Genode::Env &env, Genode::Allocator_avl &avl, char *label):
+		FS_reference(Genode::Env &env, Genode::Allocator_avl &avl, const char *label):
 			Connection(env, avl, label), _label(label), _alloc(avl), _process_packet_dispatcher(env.ep(), *this, &FS_reference::_process_packets)
 		{
 			sigh_ready_to_submit(_process_packet_dispatcher);
