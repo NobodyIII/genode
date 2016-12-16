@@ -182,6 +182,7 @@ namespace File_system {
 					parent._fs->move(dir, name, Dir_handle(new_dir->_dest.value), new_name);
 					return 0;
 				}
+				return 0; /* TODO: throw error instead of returning */
 			}
 
 			static File *file(Directory &parent, Name const &name, Mode mode, bool create)

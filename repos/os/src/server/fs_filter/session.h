@@ -7,7 +7,7 @@
 #include <root/component.h>
 #include <os/attached_rom_dataspace.h>
 #include <os/config.h>
-#include <os/server.h>
+#include <base/component.h>
 #include <os/session_policy.h>
 #include <util/xml_node.h>
 #include <file_system/util.h>

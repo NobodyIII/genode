@@ -12,6 +12,7 @@
 #include <os/session_policy.h>
 #include <util/xml_node.h>
 #include <base/component.h>
+#include <base/heap.h>
 //#include <base/env.h>
 
 /* local includes */
@@ -47,7 +48,7 @@ namespace File_system {
 						Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
 
 					if (!tx_buf_size) {
-						PERR("%s requested a session with a zero length transmission buffer", label.string());
+						error("%s requested a session with a zero length transmission buffer", label.string());
 						throw Root::Invalid_args();
 					}
 
@@ -57,7 +58,7 @@ namespace File_system {
 					 */
 					size_t session_size = sizeof(Session_component) + tx_buf_size;
 					if (max((size_t)4096, session_size) > ram_quota) {
-						PERR("insufficient 'ram_quota', got %zd, need %zd",
+						error("insufficient 'ram_quota', got %zd, need %zd",
 							 ram_quota, session_size);
 						throw Root::Quota_exceeded();
 					}
@@ -66,7 +67,7 @@ namespace File_system {
 					_sessions.insert(comp);
 					return comp;
 				} catch (Session_policy::No_policy_defined) {
-					PERR("Invalid session request, no matching policy");
+					error("Invalid session request, no matching policy");
 					throw Root::Unavailable();
 				}
 			}
@@ -96,10 +97,10 @@ struct File_system::Main
 	/*
 	 * Initialize root interface
 	 */
-	Sliced_heap sliced_heap { env.ram(), env.rm() };
-	Allocator_avl avl { &sliced_heap };
+	Heap heap { env.ram(), env.rm() };
+	Allocator_avl avl { &heap };
 
-	Root fs_root { env, sliced_heap, avl };
+	Root fs_root { env, heap, avl };
 
 	void handle_config_update()
 	{

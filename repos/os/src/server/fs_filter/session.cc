@@ -66,11 +66,11 @@ void Session_component::_update_policy(Session_policy policy)
 		} catch (Xml_node::Nonexistent_sub_node) { }
 
 	} catch (Xml_node::Nonexistent_attribute) {
-		PERR("Missing \"root\" attribute in policy definition");
+		error("Missing \"root\" attribute in policy definition");
 // 		_root_dir = Directory(); /* make invalid if update fails */
 		throw Root::Unavailable();
 	} catch (Lookup_failed) {
-		PERR("Session root directory \"%s\" does not exist", root_path);
+		error("Session root directory ", (char const *)root_path, " does not exist");
 // 		_root_dir = Directory(); /* make invalid if update fails */
 		throw Root::Unavailable();
 	}
