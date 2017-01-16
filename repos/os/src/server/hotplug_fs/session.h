@@ -58,7 +58,7 @@ namespace File_system {
 			target_fs->close(target_handle);
 		}
 	};
-	
+
 	class Session_component : public Session_rpc_object, public Genode::List<Session_component>::Element
 	{
 		friend class Directory;
@@ -97,7 +97,7 @@ namespace File_system {
 		void truncate(File_handle file_handle, file_size_t size);
 		void move(Dir_handle from_dir_handle, Name const &from_name,
 		          Dir_handle to_dir_handle,   Name const &to_name);
-		
+
 		void sigh(Node_handle node_handle, Genode::Signal_context_capability sigh);
 	};
 }

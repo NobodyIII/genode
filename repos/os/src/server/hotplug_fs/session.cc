@@ -81,7 +81,7 @@ Node *Session_component::_lookup_path(Path const &path, bool dir, bool create)
 	/* TODO: simplify */
 	size_t longest_len = 0;
 	Attachment *longest_atch = 0;
-	for (Attachment *atch = _attachments.first(); atch; atch->next()) {
+	for (Attachment *atch = _attachments.first(); atch; atch = atch->next()) {
 		size_t len = subpath(atch->target_path, path.string());
 		if (len>longest_len) {
 			longest_len = len;
