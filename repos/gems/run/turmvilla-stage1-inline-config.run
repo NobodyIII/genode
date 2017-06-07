@@ -1,0 +1,249 @@
+
+set build_components {
+	core init
+	server/part_blk
+	server/rump_fs
+	drivers/ahci
+	drivers/timer
+	server/input_merger
+	server/report_rom
+	drivers/input
+	drivers/usb
+	drivers/acpi
+	drivers/platform
+	drivers/rtc
+	server/terminal server/ram_fs
+	app/trace_subject_reporter
+	server/file_terminal
+	server/terminal_log
+	server/fs_rom
+}
+
+foreach pkg {bash coreutils vim} {
+	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
+
+build $build_components
+
+create_boot_directory
+
+set config {
+<config verbose="no" prio_levels="4">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="acpi_drv" priority="0">
+		<resource name="RAM" quantum="3M"/>
+		<route>
+			<service name="LOG"> <parent/> </service>
+			<service name="IO_MEM"> <parent/> </service>
+			<service name="RM"> <parent/> </service>
+			<service name="Report"> <child name="acpi_report_rom"/> </service>
+		</route>
+	</start>
+
+	<start name="acpi_report_rom" priority="0">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="2M"/>
+		<provides>
+			<service name="ROM" />
+			<service name="Report" />
+		</provides>
+		<config>
+			<policy label="platform_drv -> acpi" report="acpi_drv -> acpi"/>
+		</config>
+		<route>
+			<service name="LOG"> <parent/> </service>
+			<service name="RM"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="platform_drv" priority="0">
+		<resource name="RAM" quantum="4M" constrain_phys="yes"/>
+		<provides>
+            <service name="Platform"/>
+            <service name="Acpi"/>
+		</provides>
+                    <config>
+            <policy label_prefix="ps2_drv">  <device name="PS2"/> </policy>
+            <policy label_prefix="nic_drv">  <pci class="ETHERNET"/> </policy>
+            <policy label_prefix="fb_drv">   <pci class="VGA"/> </policy>
+            <policy label_prefix="wifi_drv"> <pci class="WIFI"/> </policy>
+            <policy label_prefix="usb_drv">  <pci class="USB"/> </policy>
+            <policy label_prefix="ahci_drv"> <pci class="AHCI"/> </policy>
+            <policy label_prefix="audio_drv"> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
+            <policy label_prefix="intel_fb_drv" irq_mode="nomsi">
+                <pci class="VGA"/>
+                <pci bus="0" device="0" function="0"/>
+                <pci class="ISABRIDGE"/>
+            </policy>
+                    </config>
+		<route>
+            <service name="ROM" label="platform_drv.config"> <child name="config_rom"/> </service>
+			<service name="ROM" label="acpi"> <child name="acpi_report_rom"/> </service>
+            <service name="ROM" label="system"> <child name="acpi_report_rom"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="ahci_drv" priority="-1">
+		<binary name="ahci_drv" />
+		<resource name="RAM" quantum="10M" />
+		<provides><service name="Block" /></provides>
+                    <config>
+                        <policy label_prefix="part_blk" device="0" />
+                    </config>
+		<route>
+            <service name="ROM" label="ahci_drv.config"> <child name="config_rom"/> </service>
+			<any-service> <parent /> <any-child /></any-service>
+		</route>
+	</start>
+
+	<start name="part_blk" priority="-1">
+		<resource name="RAM" quantum="10M" />
+		<provides><service name="Block" /></provides>
+                    <config>
+                        <policy label_prefix="rump_fs" partition="1"/>
+                        <policy label_prefix="init -> service_router -> ahci0_p2" partition="2"/>
+                        <policy label_prefix="init -> service_router -> ahci0_p3" partition="3"/>
+                    </config>
+		<route>
+            <service name="ROM" label="part_blk.config"> <child name="config_rom"/> </service>
+			<any-service><child name="ahci_drv"/> <parent/><any-child/></any-service>
+		</route>
+	</start>
+
+	<start name="rump_fs" priority="-2">
+		<resource name="RAM" quantum="32M" />
+		<provides><service name="File_system"/></provides>
+		<config ld_verbose="yes" fs="ext2fs">
+			<rump quota="8M"/>
+            <policy label_prefix="init -> service_router -> root_fs_rw" root="/" writeable="yes"/>
+            <policy label_prefix="init -> service_router -> root_fs_ro" root="/" writeable="no"/>
+            <policy label_prefix="init -> service_router -> root_fs_bin_ro" root="/bin" writeable="no"/>
+            <policy label_prefix="main_rom" root="/bin" writeable="no"/>
+		</config>
+		<route>
+			<any-service>
+				<child name="part_blk"/>
+				<parent/><any-child/>
+			</any-service>
+		</route>
+	</start>
+
+<!--
+	<start name="trace_subject_reporter" priority="-1">
+		<resource name="RAM" quantum="2M"/>
+		<configfile name="trace_subject_reporter.config"/>
+		<route>
+			<service name="Report"> <child name="report_rom" /> </service>
+			<service name="ROM" label="trace_subject_reporter.config">
+				<child name="config_rom"/> </service>
+			<any-service> <parent /> <any-child /></any-service>
+		</route>
+	</start>
+-->
+
+	<start name="config_fs" priority="-1">
+		<binary name="ram_fs"/>
+		<resource name="RAM" quantum="8M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+            <default-policy root="/" writeable="yes"/>
+			<content>
+
+                <inline name="platform_drv.config">
+                    <config>
+                        <policy label_prefix="init -> service_router -> dev_ps2">  <device name="PS2"/> </policy>
+                        <policy label_prefix="init -> service_router -> dev_ethernet">  <pci class="ETHERNET"/> </policy>
+                        <policy label_prefix="init -> service_router -> dev_vga">   <pci class="VGA"/> </policy>
+                        <policy label_prefix="init -> service_router -> dev_wifi"> <pci class="WIFI"/> </policy>
+                        <policy label_prefix="init -> service_router -> dev_usb">  <pci class="USB"/> </policy>
+                        <policy label_prefix="ahci_drv"> <pci class="AHCI"/> </policy>
+                        <policy label_prefix="init -> service_router -> dev_audio"> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
+                        <policy label_prefix="init -> service_router -> dev_intel_fb" irq_mode="nomsi">
+                            <pci class="VGA"/>
+                            <pci bus="0" device="0" function="0"/>
+                            <pci class="ISABRIDGE"/>
+                        </policy>
+                    </config>
+                </inline>
+
+				<inline name="ahci_drv.config">
+                    <config>
+                        <policy label_prefix="part_blk" device="0" />
+                    </config>
+				</inline>
+
+				<inline name="part_blk.config">
+                    <config>
+                        <policy label_prefix="rump_fs" partition="1"/>
+                        <policy label_prefix="init -> service_router -> ahci0_p2" partition="2"/>
+                        <policy label_prefix="init -> service_router -> ahci0_p3" partition="3"/>
+                    </config>
+				</inline>
+
+                <inline name="trace_subject_reporter.config">
+                    <config period_ms="1000">
+                        <report activity="yes" affinity="yes"/>
+                    </config>
+                </inline>
+
+			</content>
+			<policy label_prefix="config_rom" root="/"/>
+			<policy label_prefix="init -> service_router -> config_fs" root="/" writeable="yes"/>
+		</config>
+	</start>
+
+	<start name="config_rom" priority="-1">
+		<binary name="fs_rom"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/></provides>
+		<route>
+			<service name="File_system"> <child name="config_fs" /> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+</config>
+}
+
+install_config $config
+
+append boot_modules {
+	core init timer
+	part_blk ahci_drv
+	ld.lib.so
+	rump.lib.so rump_fs.lib.so rump_fs
+	acpi_drv
+	platform_drv
+	device_pd
+	report_rom
+	fs_rom
+	trace_subject_reporter
+	ram_fs
+}
+
+build_boot_image $boot_modules
+
+append qemu_args " -m 512 "
+
+#run_genode_until forever
+
