@@ -453,6 +453,8 @@ file copy -force [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/input_fi
 
 append boot_modules { }
 
+append qemu_args " -m 2048 "
+
 build_boot_image $boot_modules
 
 run_genode_until forever
