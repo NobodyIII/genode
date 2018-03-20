@@ -116,6 +116,8 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 	 */
 	Framebuffer::Mode _next_mode;
 
+	bool _use_alpha = false;
+
 	typedef Genode::size_t size_t;
 
 	/*
@@ -182,6 +184,11 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 		return Nitpicker::Area(_active_mode.width(), _active_mode.height());
 	}
 
+	void set_use_alpha(bool use_alpha)
+	{
+		_use_alpha = use_alpha;
+	}
+
 
 	/************************************
 	 ** Framebuffer::Session interface **
@@ -189,11 +196,11 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 
 	Genode::Dataspace_capability dataspace() override
 	{
-		_nitpicker.buffer(_active_mode, false);
+		_nitpicker.buffer(_active_mode, _use_alpha);
 
 		_buffer_num_bytes =
 			Genode::max(_buffer_num_bytes,
-			            Nitpicker::Session::ram_quota(_active_mode, false));
+			            Nitpicker::Session::ram_quota(_active_mode, _use_alpha));
 
 		/*
 		 * We defer the update of the view until the client calls refresh the
@@ -396,11 +403,19 @@ struct Nit_fb::Main : View_updater
 		fb_session.mode();
 	}
 
+	void _update_use_alpha()
+	{
+		Xml_node const config = config_rom.xml();
+
+		fb_session.set_use_alpha(config.attribute_value("use_alpha", false));
+	}
+
 	void handle_config_update()
 	{
 		config_rom.update();
 
 		_update_size();
+		_update_use_alpha();
 
 		update_view();
 	}
