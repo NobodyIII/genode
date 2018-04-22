@@ -37,11 +37,18 @@ struct Framebuffer::Mode
 		/**
 		 * Pixel formats
 		 */
-		enum Format { INVALID, RGB565 };
+		enum Format { INVALID, RGB565, RGB888 };
 
 		static Genode::size_t bytes_per_pixel(Format format)
 		{
-			if (format == RGB565) return 2;
+			switch(format) {
+			case RGB565:
+				return 2;
+
+			case RGB888:
+				return 4;
+			}
+
 			return 0;
 		}
 
@@ -72,6 +79,7 @@ struct Framebuffer::Mode
 			Genode::print(out, _width, "x", _height, "@");
 			switch (_format) {
 			case RGB565: Genode::print(out, "RGB565");  break;
+			case RGB888: Genode::print(out, "RGB888");  break;
 			default:     Genode::print(out, "INVALID"); break;
 			}
 		}
