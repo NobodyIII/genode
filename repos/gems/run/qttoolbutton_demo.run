@@ -1,0 +1,197 @@
+
+
+assert_spec linux
+
+proc depot_user {} { return [get_cmd_arg --depot-user genodelabs] }
+
+set build_components {
+	app/qttoolbutton_demo
+	test/pointer
+}
+
+build $build_components
+
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src]
+import_from_depot [depot_user]/raw/qt5_dejavusans
+import_from_depot [depot_user]/src/dynamic_rom
+import_from_depot [depot_user]/src/expat
+import_from_depot [depot_user]/src/fb_sdl
+import_from_depot [depot_user]/src/freetype
+import_from_depot [depot_user]/src/init
+import_from_depot [depot_user]/src/input_filter
+import_from_depot [depot_user]/src/jpeg
+import_from_depot [depot_user]/src/libc
+import_from_depot [depot_user]/src/libpng
+import_from_depot [depot_user]/src/mesa
+import_from_depot [depot_user]/src/nit_fb
+import_from_depot [depot_user]/src/nitpicker
+import_from_depot [depot_user]/src/pcre16
+import_from_depot [depot_user]/src/qt5_core
+import_from_depot [depot_user]/src/qt5_gui
+import_from_depot [depot_user]/src/qt5_qjpeg
+import_from_depot [depot_user]/src/qt5_qnitpickerviewwidget
+import_from_depot [depot_user]/src/qt5_qpa_nitpicker
+import_from_depot [depot_user]/src/qt5_widgets
+import_from_depot [depot_user]/src/report_rom
+import_from_depot [depot_user]/src/stdcxx
+import_from_depot [depot_user]/src/usb_drv
+import_from_depot [depot_user]/src/vfs
+import_from_depot [depot_user]/src/zlib
+
+append config {
+<config verbose="yes">
+
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="ROM"/>
+	</parent-provides>
+
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+		<route>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="ROM"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="fb_sdl" ld="no">
+		<resource name="RAM" quantum="6M"/>
+		<provides>
+			<service name="Framebuffer"/>
+			<service name="Input"/>
+		</provides>
+		<config buffered="yes" width="1000" height="800" depth="16"/>
+		<route>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="ROM"> <parent/> </service>
+		</route>
+	</start>
+	<alias name="input_drv" child="fb_sdl"/>
+	<alias name="fb_drv"    child="fb_sdl"/>
+
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes">
+			<policy label="pointer -> hover"     report="nitpicker -> hover"/>
+			<policy label="pointer -> xray"      report="null"/>
+			<policy label="xml_filter -> config" report="qumela_launcher_slice -> filter_config"/>
+		</config>
+		<route>
+			<service name="ROM"> <parent/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="nitpicker">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="Nitpicker"/> </provides>
+		<config>
+			<report focus="yes" hover="yes" xray="yes"/>
+			<domain name="pointer" layer="1" content="client" label="no" origin="pointer"/>
+			<domain name="default" layer="3" content="client" label="no" hover="always" focus="click"/>
+
+			<policy label_prefix="pointer"  domain="pointer"/>
+			<default-policy                 domain="default"/>
+
+			<background color="#00426f"/>
+		</config>
+		<route>
+			<service name="Timer">       <child name="timer"/>      </service>
+			<service name="Framebuffer"> <child name="fb_drv"/>     </service>
+			<service name="Input">       <child name="input_drv"/>  </service>
+			<service name="Report">      <child name="report_rom"/> </service>
+			<service name="ROM">         <parent/>                  </service>
+			<service name="CPU">         <parent/>                  </service>
+			<service name="PD">          <parent/>                  </service>
+			<service name="LOG">         <parent/>                  </service>
+		</route>
+	</start>
+
+	<start name="shape-arrow">
+		<binary name="test-pointer"/>
+		<resource name="RAM" quantum="2M"/>
+		<config shape="arrow"/>
+		<route>
+			<service name="Report" label="shape"> <child name="pointer" label="test-label-arrow -> shape"/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="ROM"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="pointer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> </provides>
+		<config shapes="yes" verbose="no"/>
+		<route>
+			<service name="Nitpicker">         <child name="nitpicker"/>  </service>
+			<service name="ROM" label="xray">  <child name="report_rom"/> </service>
+			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="ROM"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="qttoolbutton_demo" caps="300">
+		<resource name="RAM" quantum="24M"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
+				<tar name="qt5_dejavusans.tar"/>
+			</vfs>
+		</config>
+		<route>
+			<service name="Nitpicker">                  <child name="nitpicker"/>   </service>
+			<service name="ROM" label="topology">       <child name="dynamic_rom"/> </service>
+			<service name="ROM" label="running_slices"> <child name="dynamic_rom"/> </service>
+			<service name="Report">                     <child name="report_rom"/>  </service>
+			<service name="Timer">                      <child name="timer"/>       </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="ROM"> <parent/> </service>
+		</route>
+	</start>
+
+</config>
+}
+
+install_config $config
+
+# generic modules
+set boot_modules {
+	qttoolbutton_demo
+	test-pointer
+}
+
+build_boot_image $boot_modules
+
+append qemu_args "-usb  -usbdevice mouse -usbdevice keyboard"
+
+run_genode_until ".*test completed successful.*" 60

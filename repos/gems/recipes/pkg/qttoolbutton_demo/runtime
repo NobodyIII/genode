@@ -1,0 +1,49 @@
+<runtime ram="24M" caps="300" binary="qtoolbutton_demo">
+
+	<requires>
+		<nitpicker/>
+		<timer/>
+	</requires>
+
+	<content>
+		<rom label="egl.lib.so"/>
+		<rom label="expat.lib.so"/>
+		<rom label="freetype.lib.so"/>
+		<rom label="glapi.lib.so"/>
+		<rom label="jpeg.lib.so"/>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libc_pipe.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="libpng.lib.so"/>
+		<rom label="mesa.lib.so"/>
+		<rom label="pcre16.lib.so"/>
+		<rom label="pthread.lib.so"/>
+		<rom label="qt5_component.lib.so"/>
+		<rom label="qt5_core.lib.so"/>
+		<rom label="qt5_dejavusans.tar"/>
+		<rom label="qt5_gui.lib.so"/>
+		<rom label="qt5_printsupport.lib.so"/>
+		<rom label="qt5_qjpeg.lib.so"/>
+		<rom label="qt5_qpa_nitpicker.lib.so"/>
+		<rom label="qt5_widgets.lib.so"/>
+		<rom label="stdcxx.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="zlib.lib.so"/>
+
+		<rom label="qtoolbutton_demo"/>
+	</content>
+
+	<config>
+		<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+		<vfs>
+			<dir name="dev">
+				<log/>
+				<inline name="rtc">2018-01-01 00:01</inline>
+			</dir>
+			<tar name="qt5_dejavusans.tar"/>
+		</vfs>
+	</config>
+
+</runtime>
