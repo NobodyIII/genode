@@ -1080,7 +1080,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 				Device_config config;
 
 				_pci_reporter->generate([&] (Genode::Reporter::Xml_generator &xml) {
-                    int bus = 0, device = 0, function = -1;
+					int bus = 0, device = 0, function = -1;
 
 					/* iterate over pci devices */
 					while (true) {
