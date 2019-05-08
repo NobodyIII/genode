@@ -96,7 +96,6 @@ build_boot_image $boot_modules
 append qemu_args " -nographic -device ahci,id=ahci -boot d "
 append qemu_args " -drive id=disk,file=bin/ext2.raw,format=raw,if=none             -device ide-hd,drive=disk,bus=ahci.0 "
 append qemu_args " -drive id=cd,file=[run_dir]/../ahci_block.iso,if=none,media=cdrom -device ide-cd,drive=cd,bus=ahci.1 "
-append qemu_args " -drive id=disk2,file=bin/ext2.raw,format=raw,if=none            -device ide-hd,drive=disk2,bus=ahci.2 "
 
 run_genode_until "Tests finished successfully!" 100
 
